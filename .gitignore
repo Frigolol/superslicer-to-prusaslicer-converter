@@ -1,0 +1,13 @@
+build/
+dist/
+*.spec
+__pycache__/
+*.pyc
+.vscode/
+.idea/
+# personal overrides (see overrides.example.ini)
+overrides.ini
+# converted profiles, reports and backups
+*report.md
+output/
+*_backups/
