@@ -48,13 +48,16 @@ Windows may show a SmartScreen warning because the exe is not signed: *More info
 ### Window
 
 1. Double-click `ss2ps.exe`.
-2. For each type (**Print settings**, **Filaments**, **Printers**), keep the box ticked to transfer it or untick it to leave it out. The SuperSlicer and PrusaSlicer folders are filled in automatically (change them with **...** if needed).
+2. For each type (**Print settings**, **Filaments**, **Printers**), keep the box ticked to transfer it or untick it to leave it out.
 3. Tick the profiles to convert (**Select all** / **Select none**).
-4. Options: nozzle diameter (used to turn `%` widths into mm), overrides file, and whether you want to be asked about doubtful settings.
+4. Options: nozzle diameter (used to turn `%` widths into mm) and whether you want to be asked about doubtful settings.
+   The SuperSlicer and PrusaSlicer folders are found automatically; tick **Advanced** to see or change them and to pick an overrides file.
 5. Click **Convert and install into PrusaSlicer**.
    - If some profiles already exist in PrusaSlicer, you choose: replace them (old versions backed up), skip them, or cancel.
    - For each profile with doubtful settings, a window lists them: keep the proposed value or choose another one, then **OK** (**Skip this profile** leaves it out).
 6. Restart PrusaSlicer: the profiles are in the print settings, filament and printer lists, under the same names as in SuperSlicer.
+
+The window follows the Windows light / dark setting; switch with the **Dark mode** / **Light mode** button.
 
 You can also drag `.ini` profiles (or a folder) onto `ss2ps.exe`: they are converted with the same questions, and a summary is shown at the end.
 
