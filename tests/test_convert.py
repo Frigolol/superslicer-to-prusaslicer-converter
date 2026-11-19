@@ -12,11 +12,13 @@ from converter.batch import Options, convert, destination, save  # noqa: E402
 from converter.common import parse_ini, parse_overrides, read_text, valid_choice  # noqa: E402
 from converter.filament import FilamentConversion  # noqa: E402
 from converter.print_profile import PrintConversion  # noqa: E402
+from converter.printer import PRINT_START_GCODE, PrinterConversion  # noqa: E402
 
 EX = ROOT / "examples"
 SUPER_FIL = read_text(EX / "superslicer_abs.ini")
 PRUSA_FIL = read_text(EX / "prusaslicer_asa.ini")
 SUPER_PRINT = read_text(EX / "superslicer_print.ini")
+SUPER_PRINTER = read_text(EX / "superslicer_printer.ini")
 
 
 # ---------------------------------------------------------------------------
@@ -119,6 +121,48 @@ class Print(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# Printer
+# ---------------------------------------------------------------------------
+class Printer(unittest.TestCase):
+    def setUp(self):
+        self.c = PrinterConversion(SUPER_PRINTER).run()
+        self.out, self.src = self.c.out, parse_ini(SUPER_PRINTER)
+
+    def test_direct_values(self):
+        for key in ("bed_shape", "nozzle_diameter", "retract_length", "machine_max_acceleration_x",
+                    "end_gcode", "toolchange_gcode", "gcode_flavor"):
+            self.assertEqual(self.out[key], self.src[key], key)
+
+    def test_conversions(self):
+        self.assertEqual(self.out["max_layer_height"], ",".join(["0.3"] * 5))
+        self.assertEqual(self.out["thumbnails"], "32x32/PNG, 400x300/PNG")
+        self.assertEqual(self.out["printer_settings_id"], "")
+        self.assertEqual(self.out["nozzle_high_flow"], "0,0,0,0,0")
+
+    def test_host_klipper_is_moonraker(self):
+        c = PrinterConversion(SUPER_PRINTER.replace("host_type = octoprint", "host_type = klipper")).run()
+        self.assertEqual(c.out["host_type"], "moonraker")
+
+    def test_start_gcode_proposed_and_kept(self):
+        d = {x["key"]: x for x in self.c.doubts}["start_gcode"]
+        self.assertEqual(self.out["start_gcode"], PRINT_START_GCODE)
+        self.assertEqual(d["options"], [PRINT_START_GCODE, self.src["start_gcode"]])
+        self.assertIn(self.src["start_gcode"], d["labels"])
+        self.c.apply_choices({"start_gcode": self.src["start_gcode"]})
+        self.assertEqual(self.c.out["start_gcode"], self.src["start_gcode"])
+
+    def test_start_gcode_already_adapted(self):
+        text = SUPER_PRINTER.replace(self.src["start_gcode"], PRINT_START_GCODE)
+        c = PrinterConversion(text).run()
+        self.assertNotIn("start_gcode", [d["key"] for d in c.doubts])
+
+    def test_missing_bed_model_is_a_doubt(self):
+        keys = [d["key"] for d in self.c.doubts]
+        self.assertIn("bed_custom_model", keys)
+        self.assertEqual(self.out["bed_custom_model"], "")
+
+
+# ---------------------------------------------------------------------------
 # Overrides, detection, writing
 # ---------------------------------------------------------------------------
 class Batch(unittest.TestCase):
@@ -145,7 +189,8 @@ class Batch(unittest.TestCase):
 
     def test_kind_detected_and_written_with_report(self):
         opts = Options(overrides=parse_overrides(ROOT / "overrides.example.ini"))
-        for f, kind in (("superslicer_print.ini", "print"), ("superslicer_abs.ini", "filament")):
+        for f, kind in (("superslicer_print.ini", "print"), ("superslicer_abs.ini", "filament"),
+                        ("superslicer_printer.ini", "printer")):
             c = convert(str(EX / f), opts)
             self.assertEqual(c.kind, kind)
             dest = destination(c, self.tmp)
@@ -164,6 +209,14 @@ class Batch(unittest.TestCase):
     def test_print_to_superslicer_rejected(self):
         with self.assertRaises(ValueError):
             convert(str(EX / "superslicer_print.ini"), Options(target="super"))
+
+    def test_printer_overrides_section(self):
+        p = os.path.join(self.tmp, "o.ini")
+        Path(p).write_text("[printer]\n# my macro\nstart_gcode = PRINT_START\n", encoding="utf-8")
+        o = parse_overrides(p)
+        c = convert(str(EX / "superslicer_printer.ini"), Options(overrides=o))
+        self.assertEqual(c.out["start_gcode"], "PRINT_START")
+        self.assertNotIn("start_gcode", [d["key"] for d in c.doubts])
 
     def test_same_target_rejected(self):
         with self.assertRaises(ValueError):

@@ -5,12 +5,13 @@ from dataclasses import dataclass, field
 from .common import (SLICERS, backup, detect_kind, detect_slicer, parse_ini, read_text, slicer_dir)
 from .filament import FilamentConversion
 from .print_profile import PrintConversion
+from .printer import PrinterConversion
 
 
 @dataclass
 class Options:
     nozzle: float = 0.4
-    overrides: dict = field(default_factory=dict)   # {"print": {...}, "filament": {...}}
+    overrides: dict = field(default_factory=dict)   # {"print": {...}, "filament": {...}, "printer": {...}}
     overrides_path: str = ""
     kind: str = ""          # "" = auto-detected
     target: str = ""        # "" = the other slicer
@@ -27,10 +28,11 @@ def convert(path, opts):
     if target == source:
         raise ValueError(f"already a {SLICERS[source]} profile")
     ovr = opts.overrides.get(kind, {})
-    if kind == "print":
+    if kind in ("print", "printer"):
         if target != "prusa":
-            raise ValueError("print profiles can only be converted from SuperSlicer to PrusaSlicer")
-        conv = PrintConversion(text, ovr, path, opts.nozzle)
+            raise ValueError(f"{kind} profiles can only be converted from SuperSlicer to PrusaSlicer")
+        conv = (PrintConversion(text, ovr, path, opts.nozzle) if kind == "print"
+                else PrinterConversion(text, ovr, path))
     else:
         conv = FilamentConversion(text, ovr, path, target, opts.keep_phony)
     if opts.overrides_path and ovr:

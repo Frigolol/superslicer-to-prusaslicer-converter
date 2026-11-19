@@ -18,14 +18,14 @@ USAGE = """examples:
 
 def run_cli(argv):
     ap = argparse.ArgumentParser(prog="ss2ps", description="SuperSlicer -> PrusaSlicer profile converter "
-                                 "(print settings and filaments).", epilog=USAGE,
+                                 "(print settings, filaments and printers).", epilog=USAGE,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("inputs", nargs="+", help=".ini profiles or folders of profiles")
     ap.add_argument("-o", "--out", help="output file (single input)")
     ap.add_argument("-d", "--outdir", help="output folder (default: the target slicer's folder for that type)")
-    ap.add_argument("--kind", choices=["print", "filament"], help="profile type (default: auto-detected)")
+    ap.add_argument("--kind", choices=["print", "filament", "printer"], help="profile type (default: auto-detected)")
     ap.add_argument("--to", choices=["prusa", "super"],
-                    help="target slicer (default: the other one; print profiles: prusa only)")
+                    help="target slicer (default: the other one; print and printer profiles: prusa only)")
     ap.add_argument("--nozzle", type=float, default=0.4, help="nozzle diameter, to convert %% widths to mm (print)")
     ap.add_argument("--overrides", help="overrides file (default: overrides.ini next to the program, if present)")
     ap.add_argument("--no-overrides", action="store_true", help="ignore overrides.ini")

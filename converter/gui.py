@@ -8,7 +8,7 @@ from .batch import Options, convert, destination, save
 from .common import (KINDS, app_dir, default_overrides_path, list_profiles, parse_overrides,
                      slicer_dir, valid_choice)
 
-TITLES = {"print": "Print settings", "filament": "Filaments"}
+TITLES = {"print": "Print settings", "filament": "Filaments", "printer": "Printers"}
 
 
 # ---------------------------------------------------------------------------
@@ -31,20 +31,27 @@ def ask_doubts(parent, doubts, title):
     vars_ = {}
     for i, d in enumerate(doubts, start=3):
         ttk.Label(frm, text=d["key"]).grid(row=i, column=0, sticky="w", pady=3, padx=(0, 8))
-        v = tk.StringVar(value=d["value"])
-        ttk.Combobox(frm, textvariable=v, values=d["options"], width=18,
+        labels = d.get("labels") or {}
+        shown = [labels.get(o, o) for o in d["options"]]
+        v = tk.StringVar(value=shown[0])
+        ttk.Combobox(frm, textvariable=v, values=shown, width=max(18, min(60, max(len(x) for x in shown))),
                      state="readonly" if d["closed"] else "normal").grid(row=i, column=1, padx=(0, 8))
+        v.back = dict(zip(shown, d["options"]))
         ttk.Label(frm, text=d["note"], wraplength=420, justify="left").grid(row=i, column=2, sticky="w")
         vars_[d["key"]] = v
 
     result = {}
 
+    def value(k):
+        v = vars_[k]
+        return v.back.get(v.get(), v.get().strip())
+
     def ok():
-        bad = [d["key"] for d in doubts if not valid_choice(d, vars_[d["key"]].get().strip())]
+        bad = [d["key"] for d in doubts if not valid_choice(d, value(d["key"]))]
         if bad:
             messagebox.showerror("Invalid value", "A number is expected for:\n" + "\n".join(bad), parent=win)
             return
-        result.update({k: v.get().strip() for k, v in vars_.items()})
+        result.update({k: value(k) for k in vars_})
         win.destroy()
 
     btns = ttk.Frame(frm)
@@ -161,7 +168,7 @@ class ProfileSection:
         box = ttk.Frame(self.frame)
         box.grid(row=2, column=0, columnspan=3, sticky="nsew", pady=(6, 0))
         self.frame.rowconfigure(2, weight=1)
-        self.canvas = tk.Canvas(box, height=130, highlightthickness=0)
+        self.canvas = tk.Canvas(box, height=90, highlightthickness=0)
         sb = ttk.Scrollbar(box, orient="vertical", command=self.canvas.yview)
         self.inner = ttk.Frame(self.canvas)
         self.inner.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
@@ -228,7 +235,7 @@ class ProfileSection:
 def main_window():
     root = tk.Tk()
     root.title(f"SuperSlicer -> PrusaSlicer converter {__version__}")
-    root.geometry("860x780")
+    root.geometry("860x900")
     root.minsize(640, 600)
     pad = {"padx": 10, "pady": 4}
 

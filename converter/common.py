@@ -6,7 +6,7 @@ import sys
 
 from . import __version__
 
-KINDS = ("print", "filament")
+KINDS = ("print", "filament", "printer")
 SLICERS = {"super": "SuperSlicer", "prusa": "PrusaSlicer"}
 REPORT_ORDER = ["doubt", "override", "converted", "default", "ignored", "direct"]
 
@@ -32,12 +32,14 @@ def read_text(path):
 
 
 def detect_kind(data):
-    """'print' or 'filament', from the keys of a profile."""
+    """'print', 'filament' or 'printer', from the keys of a profile."""
+    if "bed_shape" in data and "nozzle_diameter" in data:
+        return "printer"
     if "perimeters" in data and "layer_height" in data:
         return "print"
     if "filament_type" in data or ("temperature" in data and "filament_diameter" in data):
         return "filament"
-    raise ValueError("not a print or filament profile")
+    raise ValueError("not a print, filament or printer profile")
 
 
 def detect_slicer(text, data):
@@ -58,7 +60,7 @@ def detect_slicer(text, data):
 # Overrides
 # ---------------------------------------------------------------------------
 def parse_overrides(path):
-    """Overrides file -> {"print": {key: (value, reason)}, "filament": {...}}.
+    """Overrides file -> {"print": {key: (value, reason)}, "filament": {...}, "printer": {...}}.
 
     Lines before any [section] belong to [print] (format of v1.x).
     The `# ...` comment right above a line is used as the reason in the report.
@@ -72,7 +74,7 @@ def parse_overrides(path):
         elif line.startswith("[") and line.endswith("]"):
             name = line[1:-1].strip().lower()
             if name not in res:
-                raise ValueError(f"{os.path.basename(path)}: unknown section [{name}] (use [print] or [filament])")
+                raise ValueError(f"{os.path.basename(path)}: unknown section [{name}] (use [print], [filament] or [printer])")
             section, why = name, ""
         elif line.startswith("#"):
             why = line.lstrip("# ").strip()
@@ -168,12 +170,14 @@ class Conversion:
         """Report line without output value (e.g. ignored keys)."""
         self.log.append((status, key, value, note))
 
-    def doubt(self, key, value, options, note, closed=False):
+    def doubt(self, key, value, options, note, closed=False, labels=None):
         """Proposed value the user should confirm. `options` = suggested alternatives.
-        closed=True: only the listed options are valid; otherwise any number is accepted."""
+        closed=True: only the listed options are valid; otherwise any number is accepted.
+        labels: {value: text shown instead of the value} (for long values such as G-code)."""
         opts = [value] + [o for o in options if o != value]
         self.set(key, value, "doubt", note)
-        self.doubts.append({"key": key, "value": value, "options": opts, "note": note, "closed": closed})
+        self.doubts.append({"key": key, "value": value, "options": opts, "note": note, "closed": closed,
+                            "labels": labels or {}})
 
     def apply_overrides(self):
         for k, (v, why) in self.overrides.items():
@@ -194,7 +198,10 @@ class Conversion:
             if v == d["value"]:
                 continue
             self.out[d["key"]] = v
-            self.log = [(st, k, v, f"{n} -- user chose `{v}` (proposed `{d['value']}`)")
+            lab = d.get("labels", {})
+            chose = lab.get(v, f"`{v}`")
+            prop = lab.get(d["value"], f"`{d['value']}`")
+            self.log = [(st, k, v, f"{n} -- user chose {chose} (proposed {prop})")
                         if st == "doubt" and k == d["key"] else (st, k, val, n)
                         for st, k, val, n in self.log]
 
@@ -247,6 +254,16 @@ def ask_console(doubts, title=""):
     res = {}
     for d in doubts:
         print(f"\n  {d['key']}: {d['note']}")
+        if d.get("labels"):
+            for i, o in enumerate(d["options"], 1):
+                print(f"    {i}) {d['labels'].get(o, o)}")
+            while True:
+                a = input("    choice [1]: ").strip() or "1"
+                if a.isdigit() and 1 <= int(a) <= len(d["options"]):
+                    break
+                print("    type the number of an option")
+            res[d["key"]] = d["options"][int(a) - 1]
+            continue
         print("    options: " + ", ".join(d["options"]))
         while True:
             a = input(f"    value [{d['value']}]: ").strip() or d["value"]
