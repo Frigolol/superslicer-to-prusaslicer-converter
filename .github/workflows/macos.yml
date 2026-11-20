@@ -48,6 +48,14 @@ jobs:
           ls check
           test -f check/superslicer_printer.ini
 
+      - name: Check that the window opens
+        run: |
+          dist/ss2ps.app/Contents/MacOS/ss2ps > window.log 2>&1 &
+          PID=$!
+          sleep 10
+          if kill -0 $PID 2>/dev/null; then echo "window still running after 10 s: OK"; kill $PID
+          else echo "the app exited:"; cat window.log; exit 1; fi
+
       - name: Zip
         run: |
           cp overrides.example.ini dist/

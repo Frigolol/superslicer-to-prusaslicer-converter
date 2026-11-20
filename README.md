@@ -1,6 +1,6 @@
 # SuperSlicer to PrusaSlicer converter
 
-Move your **SuperSlicer profiles to PrusaSlicer 2.9**: print settings, filaments and printers, in one Windows program.
+Move your **SuperSlicer profiles to PrusaSlicer 2.9**: print settings, filaments and printers, in one program for Windows and macOS.
 Pick what you want to transfer, tick the profiles, click **Convert**: the profiles are installed straight into PrusaSlicer, each one with a report explaining every setting.
 
 > Not affiliated with Prusa Research or the SuperSlicer project.
@@ -39,9 +39,19 @@ This project replaces two earlier tools:
 
 ## Download
 
-Get `ss2ps.exe` from the [Releases](../../releases) page. No installation, no Python needed.
+From the [Releases](../../releases) page. No installation, no Python needed.
 
-Windows may show a SmartScreen warning because the exe is not signed: *More info* → *Run anyway*.
+| system | file |
+|---|---|
+| Windows | `ss2ps.exe` |
+| macOS, Apple Silicon (M1, M2, …) | `ss2ps-macos-apple-silicon.zip` |
+| macOS, Intel | `ss2ps-macos-intel.zip` |
+
+**Windows** may show a SmartScreen warning because the exe is not signed: *More info* → *Run anyway*.
+
+**macOS**: unzip, move `ss2ps.app` to *Applications* if you like. The app is not signed by Apple, so the first time macOS refuses to open it:
+- right-click (or Ctrl-click) `ss2ps.app` → *Open* → *Open*; on recent macOS versions, if there is no *Open* button, go to *System Settings* → *Privacy & Security* and click *Open Anyway*;
+- or in Terminal: `xattr -dr com.apple.quarantine /path/to/ss2ps.app`
 
 ## Usage
 
@@ -57,9 +67,9 @@ Windows may show a SmartScreen warning because the exe is not signed: *More info
    - For each profile with doubtful settings, a window lists them: keep the proposed value or choose another one, then **OK** (**Skip this profile** leaves it out).
 6. Restart PrusaSlicer: the profiles are in the print settings, filament and printer lists, under the same names as in SuperSlicer.
 
-The window follows the Windows light / dark setting; switch with the **Dark mode** / **Light mode** button.
+The window follows the system light / dark setting; switch with the **Dark mode** / **Light mode** button.
 
-You can also drag `.ini` profiles (or a folder) onto `ss2ps.exe`: they are converted with the same questions, and a summary is shown at the end.
+On Windows, you can also drag `.ini` profiles (or a folder) onto `ss2ps.exe`: they are converted with the same questions, and a summary is shown at the end.
 
 Backups of replaced profiles go to `%APPDATA%\PrusaSlicer\print_backups\`, `...\filament_backups\` and `...\printer_backups\`.
 
@@ -154,6 +164,17 @@ build.bat
 ```
 
 The exe is created in `dist\ss2ps.exe`.
+
+macOS (PyInstaller only builds for the system it runs on):
+
+```
+pip install pyinstaller
+python -m PyInstaller --windowed --name ss2ps ss2ps.py
+```
+
+The app is created in `dist/ss2ps.app`. The release apps are built by GitHub Actions ([`.github/workflows/macos.yml`](.github/workflows/macos.yml)).
+
+To use an overrides file automatically on macOS, put `overrides.ini` next to `ss2ps.app`.
 
 ## Tests
 
