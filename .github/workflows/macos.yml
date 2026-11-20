@@ -2,8 +2,6 @@ name: macOS app
 
 # Builds ss2ps.app on macOS (Apple Silicon and Intel), tests it, and attaches the zips to the release.
 on:
-  push:
-    branches: [macos-build]
   workflow_dispatch:
   release:
     types: [published]
