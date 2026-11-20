@@ -7,7 +7,7 @@ from . import __version__
 from .batch import Options, convert, destination, save
 from .common import (KINDS, app_dir, default_overrides_path, list_profiles, parse_overrides,
                      slicer_dir, valid_choice)
-from .theme import FONT, MONO, Theme, dark_title_bar
+from .theme import MAC, Theme, dark_title_bar, font, mono
 
 TITLES = {"print": "Print settings", "filament": "Filaments", "printer": "Printers"}
 _theme = None   # Theme of the running window, used by dialogs
@@ -39,7 +39,7 @@ def ask_doubts(parent, doubts, title):
     _prepare_dialog(win)
     frm = ttk.Frame(win, padding=(20, 16))
     frm.pack(fill="both", expand=True)
-    ttk.Label(frm, text=title, font=(FONT, 13, "bold")).pack(anchor="w")
+    ttk.Label(frm, text=title, font=font(13, "bold")).pack(anchor="w")
     ttk.Label(frm, text="These settings could not be converted with certainty. "
                         "Keep the proposed value or choose another one.",
               style="Sub.TLabel", wraplength=620, justify="left").pack(anchor="w", pady=(2, 12))
@@ -49,7 +49,7 @@ def ask_doubts(parent, doubts, title):
         outer, card = _card(frm, padding=(14, 10))
         outer.pack(fill="x", pady=4)
         card.columnconfigure(0, weight=1)
-        ttk.Label(card, text=d["key"], style="CardHead.TLabel", font=(MONO, 10, "bold")).grid(
+        ttk.Label(card, text=d["key"], style="CardHead.TLabel", font=mono(10, "bold")).grid(
             row=0, column=0, sticky="w")
         ttk.Label(card, text=d["note"], style="CardMuted.TLabel", wraplength=600, justify="left").grid(
             row=1, column=0, sticky="w", pady=(1, 6))
@@ -239,7 +239,9 @@ class ProfileSection:
 
     def _wheel(self, e):
         if self.inner.winfo_height() > self.canvas.winfo_height():
-            self.canvas.yview_scroll(int(-e.delta / 120), "units")
+            # Windows: multiples of 120 per notch; macOS: small values
+            step = -e.delta if MAC else int(-e.delta / 120)
+            self.canvas.yview_scroll(step, "units")
 
     def show_folders(self, show):
         if show:
@@ -394,7 +396,7 @@ def main_window():
     # log
     log_outer, log_card = _card(body, padding=(12, 8))
     log_box = tk.Text(log_card, height=5, state="disabled", wrap="word", relief="flat", borderwidth=0,
-                      font=(MONO, 9), highlightthickness=0)
+                      font=mono(9), highlightthickness=0)
     log_box.pack(fill="both", expand=True)
     theme.track(log_box, bg="card", fg="fg", insertbackground="fg", selectbackground="select")
     tags = {"OK": "ok", "ERROR": "err", "SKIPPED": "muted", "Cancelled": "muted"}

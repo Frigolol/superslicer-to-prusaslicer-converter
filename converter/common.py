@@ -93,8 +93,16 @@ def app_dir():
 
 
 def default_overrides_path():
-    p = os.path.join(app_dir(), "overrides.ini")
-    return p if os.path.isfile(p) else None
+    """overrides.ini next to the program (on macOS also next to the .app bundle)."""
+    folders = [app_dir()]
+    if getattr(sys, "frozen", False) and sys.platform == "darwin":
+        app = os.path.abspath(os.path.join(app_dir(), "..", ".."))   # ss2ps.app/Contents/MacOS -> ss2ps.app
+        folders.append(os.path.dirname(app))
+    for folder in folders:
+        p = os.path.join(folder, "overrides.ini")
+        if os.path.isfile(p):
+            return p
+    return None
 
 
 # ---------------------------------------------------------------------------

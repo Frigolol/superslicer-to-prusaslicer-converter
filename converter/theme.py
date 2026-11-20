@@ -15,12 +15,30 @@ PALETTES = {
         "hover": "#30343a", "select": "#29406b", "disabled": "#5d636b", "ok": "#3fb950", "err": "#f85149",
     },
 }
-FONT = "Segoe UI" if sys.platform == "win32" else "TkDefaultFont"
-MONO = "Consolas" if sys.platform == "win32" else "TkFixedFont"
+MAC = sys.platform == "darwin"
+FONT = {"win32": "Segoe UI", "darwin": "Helvetica Neue"}.get(sys.platform, "DejaVu Sans")
+MONO = {"win32": "Consolas", "darwin": "Menlo"}.get(sys.platform, "DejaVu Sans Mono")
+
+
+def font(size, *style):
+    """Font tuple; Tk on macOS draws points at 72 dpi, so sizes are bumped there."""
+    return (FONT, size + (3 if MAC else 0)) + style
+
+
+def mono(size, *style):
+    return (MONO, size + (2 if MAC else 0)) + style
 
 
 def system_mode():
-    """'dark' or 'light', from the Windows app setting (light elsewhere)."""
+    """'dark' or 'light', from the Windows or macOS appearance setting (light elsewhere)."""
+    if MAC:
+        try:
+            import subprocess
+            r = subprocess.run(["defaults", "read", "-g", "AppleInterfaceStyle"],
+                               capture_output=True, text=True, timeout=3)
+            return "dark" if "dark" in r.stdout.lower() else "light"
+        except Exception:  # cosmetic only
+            return "light"
     if sys.platform != "win32":
         return "light"
     try:
@@ -65,7 +83,7 @@ class Theme:
 
     def apply(self):
         c, s = self.c, self.style
-        f = (FONT, 10)
+        f = font(10)
         s.configure(".", background=c["bg"], foreground=c["fg"], font=f, bordercolor=c["border"],
                     lightcolor=c["border"], darkcolor=c["border"], troughcolor=c["bg"],
                     fieldbackground=c["field"], selectbackground=c["select"], selectforeground=c["fg"],
@@ -75,12 +93,12 @@ class Theme:
         s.configure("Card.TFrame", background=c["card"], relief="solid", borderwidth=1)
         s.configure("Inner.TFrame", background=c["card"])
         s.configure("TLabel", background=c["bg"], foreground=c["fg"])
-        s.configure("Title.TLabel", font=(FONT, 17, "bold"))
+        s.configure("Title.TLabel", font=font(17, "bold"))
         s.configure("Sub.TLabel", foreground=c["muted"])
         for base in ("Card", "CardMuted", "CardHead"):
             s.configure(f"{base}.TLabel", background=c["card"])
-        s.configure("CardMuted.TLabel", foreground=c["muted"], font=(FONT, 9))
-        s.configure("CardHead.TLabel", font=(FONT, 11, "bold"))
+        s.configure("CardMuted.TLabel", foreground=c["muted"], font=font(9))
+        s.configure("CardHead.TLabel", font=font(11, "bold"))
 
         for name, bg in (("TCheckbutton", c["bg"]), ("Card.TCheckbutton", c["card"]),
                          ("Head.TCheckbutton", c["card"])):
@@ -90,18 +108,18 @@ class Theme:
             s.map(name, background=[("active", bg)],
                   indicatorbackground=[("selected", c["accent"]), ("active", c["hover"])],
                   foreground=[("disabled", c["disabled"])])
-        s.configure("Head.TCheckbutton", font=(FONT, 11, "bold"))
+        s.configure("Head.TCheckbutton", font=font(11, "bold"))
 
         s.configure("TButton", background=c["card"], foreground=c["fg"], padding=(12, 5), relief="flat",
                     borderwidth=1, focusthickness=0)
         s.map("TButton", background=[("disabled", c["card"]), ("pressed", c["select"]), ("active", c["hover"])],
               bordercolor=[("active", c["accent"])])
         s.configure("Link.TButton", background=c["card"], foreground=c["accent"], padding=(6, 1),
-                    borderwidth=0, font=(FONT, 9))
+                    borderwidth=0, font=font(9))
         s.map("Link.TButton", background=[("active", c["hover"]), ("disabled", c["card"])],
               foreground=[("disabled", c["disabled"])])
         s.configure("Accent.TButton", background=c["accent"], foreground=c["accent_fg"], bordercolor=c["accent"],
-                    padding=(22, 9), font=(FONT, 10, "bold"))
+                    padding=(22, 9), font=font(10, "bold"))
         s.map("Accent.TButton", background=[("pressed", c["accent_hover"]), ("active", c["accent_hover"])],
               bordercolor=[("active", c["accent_hover"])])
         s.configure("Ghost.TButton", background=c["bg"], padding=(10, 4), borderwidth=1)

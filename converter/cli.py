@@ -73,6 +73,7 @@ def run_cli(argv):
 
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
+    argv = [a for a in argv if not a.startswith("-psn_")]   # old macOS adds this when opening an .app
     frozen = getattr(sys, "frozen", False)
     if not argv:
         from .gui import main_window
